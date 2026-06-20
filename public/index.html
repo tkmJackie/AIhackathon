@@ -9,14 +9,18 @@
 <body>
   <main class="demo-page">
     <header class="top-bar">
-      <div>
+      <div class="title-area">
         <p class="eyebrow">Hackathon Demo</p>
         <h1>やわらかCSチャット</h1>
       </div>
+
       <p class="concept">
         強い言葉をそのまま届けず、相手にはやさしい言葉として表示するカスタマーサポートチャット
       </p>
-      <button id="resetButton" class="reset-button" type="button">会話をリセット</button>
+
+      <button id="resetButton" class="reset-button" type="button">
+        会話をリセット
+      </button>
     </header>
 
     <section class="demo-grid">
@@ -27,18 +31,85 @@
             <p class="role-chip customer">お客さま側</p>
             <h2>Customer Chat</h2>
           </div>
-          <p class="panel-note">従業員の強い言葉は、やさしい案内文に変換されて届きます。</p>
+          <p class="panel-note">
+            従業員の強い言葉は、やさしい案内文に変換されて届きます。
+          </p>
         </div>
 
         <div id="customerMessages" class="message-list"></div>
 
         <form id="customerForm" class="composer">
           <div class="quick-row">
-            <button type="button" class="quick-chip" data-target="customer" data-text="なんでまだ返事がないの？早くしてください。">
-              強めの例
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="customer"
+              data-text="なんでまだ返事がないの？早くしてください。"
+            >
+              返信催促
             </button>
-            <button type="button" class="quick-chip" data-target="customer" data-text="説明がわかりにくいです。ちゃんと対応してください。">
-              クレーム例
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="customer"
+              data-text="説明がわかりにくいです。ちゃんと対応してください。"
+            >
+              説明不満
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="customer"
+              data-text="前にも言いましたよね？何回同じことを聞くんですか？"
+            >
+              繰り返し不満
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="customer"
+              data-text="この対応はひどすぎます。責任者を出してください。"
+            >
+              強いクレーム
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="customer"
+              data-text="請求金額がおかしいです。すぐに確認してください。"
+            >
+              請求トラブル
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="customer"
+              data-text="いつまで待たせるんですか？今日中に対応してください。"
+            >
+              納期催促
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="customer"
+              data-text="全然納得できません。ちゃんと説明してください。"
+            >
+              納得できない
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="customer"
+              data-text="もういいです。解約したいので手続きを進めてください。"
+            >
+              解約希望
             </button>
           </div>
 
@@ -61,18 +132,85 @@
             <p class="role-chip agent">従業員側</p>
             <h2>Agent Chat</h2>
           </div>
-          <p class="panel-note">お客さまの強い言葉は、落ち着いた要望文に変換されて届きます。</p>
+          <p class="panel-note">
+            お客さまの強い言葉は、落ち着いた要望文に変換されて届きます。
+          </p>
         </div>
 
         <div id="agentMessages" class="message-list"></div>
 
         <form id="agentForm" class="composer">
           <div class="quick-row">
-            <button type="button" class="quick-chip" data-target="agent" data-text="その言い方では対応できません。必要事項を先に送ってください。">
-              強めの例
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="agent"
+              data-text="その言い方では対応できません。必要事項を先に送ってください。"
+            >
+              強めの案内
             </button>
-            <button type="button" class="quick-chip" data-target="agent" data-text="こちらでは確認できません。自分で調べてください。">
-              突き放し例
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="agent"
+              data-text="こちらでは確認できません。自分で調べてください。"
+            >
+              突き放し
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="agent"
+              data-text="何度も同じ説明をしています。もう一度確認してください。"
+            >
+              繰り返し説明
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="agent"
+              data-text="それは対応できません。規約に書いてあります。"
+            >
+              対応不可
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="agent"
+              data-text="情報が足りないので、これでは調査できません。"
+            >
+              情報不足
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="agent"
+              data-text="順番に対応しているので待ってください。"
+            >
+              待機依頼
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="agent"
+              data-text="返金はできません。ご了承ください。"
+            >
+              返金不可
+            </button>
+
+            <button
+              type="button"
+              class="quick-chip"
+              data-target="agent"
+              data-text="こちらのミスではないため、対応できません。"
+            >
+              責任否定
             </button>
           </div>
 
