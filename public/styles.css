@@ -406,3 +406,14 @@ textarea:focus {
     width: 100%;
   }
 }
+
+/* 上部の説明エリアを非表示 */
+.hero {
+  display: none;
+}
+
+/* 上部を消した分、余白を調整 */
+.page {
+  padding-top: 24px;
+}
+
