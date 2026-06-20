@@ -15,6 +15,8 @@ async function handleSoften(request, env) {
     const body = await request.json();
 
     const text = String(body.text || "").trim();
+    const from = String(body.from || "personA");
+    const history = Array.isArray(body.history) ? body.history : [];
 
     if (!text) {
       return jsonResponse({ error: "文章が空です。" }, 400);
@@ -31,7 +33,12 @@ async function handleSoften(request, env) {
       );
     }
 
-    const prompt = buildPrompt(text);
+    const prompt = buildPrompt({
+      text,
+      from,
+      history
+    });
+
     const model = env.GEMINI_MODEL || "gemini-3.5-flash";
 
     const apiUrl =
@@ -55,9 +62,9 @@ async function handleSoften(request, env) {
           }
         ],
         generationConfig: {
-          temperature: 0.25,
-          topP: 0.8,
-          maxOutputTokens: 800
+          temperature: 0.15,
+          topP: 0.75,
+          maxOutputTokens: 500
         }
       })
     });
@@ -93,55 +100,87 @@ async function handleSoften(request, env) {
   }
 }
 
-function buildPrompt(text) {
+function buildPrompt({ text, from, history }) {
+  const senderName = from === "personA" ? "Aさん" : "Bさん";
+  const receiverName = from === "personA" ? "Bさん" : "Aさん";
+
+  const historyText = formatHistory(history);
+
   return `
-あなたは人間関係を円滑にするための文章変換AIです。
+あなたは、一般人同士の会話をやわらかく言い換えるAIです。
 
 目的:
-友人、家族、恋人、同僚、知人など、一般人同士の会話において、
-強い言葉・怒り・命令口調・嫌味・冷たい表現を、
-相手が受け取りやすいやさしい言葉に変換してください。
+${senderName}が送った強い言葉を、${receiverName}が受け取りやすい自然な言葉に言い換えてください。
 
-重要:
-これはカスタマーサポート文ではありません。
-「恐れ入ります」「ご案内いたします」「対応いたします」などの業務的すぎる表現は使わないでください。
-日常会話として自然な日本語にしてください。
-
-変換ルール:
-- 元の意図は残す
-- 相手を責める表現をやわらげる
-- 命令口調をお願い・相談の形にする
-- 嫌味や攻撃的な表現を消す
-- 丁寧すぎず、自然な言い方にする
-- 文章は1〜3文にする
-- 途中で終わる文章は禁止
-- 余計な説明は不要
+最重要ルール:
+- 文脈とニュアンスを変えない
+- 原文にない事実を足さない
+- 原文にない謝罪を勝手に足さない
+- 原文にない約束を勝手に足さない
+- 原文にない解決策を勝手に足さない
+- 原文の主張、依頼、不満、拒否、疑問は残す
+- 怒りや不満は消さず、「冷静な不満」として残す
+- 相手への攻撃、嫌味、命令口調だけをやわらげる
+- 丁寧すぎるビジネス文にしない
+- 「恐れ入ります」「ご案内いたします」「対応いたします」「確認いたします」は使わない
+- カスタマーサポート風にしない
+- 日常会話として自然な日本語にする
+- 1〜2文にする
+- 途中で終わらない
 - 変換後の文章だけを出力する
 
-変換例:
-原文: なんでまだ返事ないの？早くして。
-変換後: まだ返事が来ていないみたいで少し気になっています。時間があるときに返してもらえるとうれしいです。
+変換の考え方:
+悪い変換:
+原文: それは対応できません。規約に書いてあります。
+変換後: 恐れ入りますが、今回の内容は規約上ご対応が難しい状況です。
+理由: カスタマーサポート風で、一般会話として不自然。
 
-原文: 何回言えばわかるの？
-変換後: 前にも伝えたことなので、もう一度確認してもらえると助かります。
+良い変換:
+原文: それは対応できません。規約に書いてあります。
+変換後: それは難しそうです。理由は決まりに書かれている内容だからです。
 
-原文: その言い方むかつく。
-変換後: その言い方だと少しきつく感じてしまいました。もう少しやわらかく話してもらえるとうれしいです。
+悪い変換:
+原文: 全然納得できません。ちゃんと説明してください。
+変換後: ご説明いただけますと幸いです。
+理由: 不満の強さが消えている。
 
-原文: もういい。勝手にして。
-変換後: 今は少し気持ちが落ち着かないので、少し時間を置きたいです。
+良い変換:
+原文: 全然納得できません。ちゃんと説明してください。
+変換後: まだ納得できていないので、もう少し分かりやすく説明してほしいです。
 
-原文: 全然納得できない。ちゃんと説明して。
-変換後: まだ少し納得できていないところがあります。もう少し詳しく説明してもらえると助かります。
+悪い変換:
+原文: こちらのミスではないため、対応できません。
+変換後: ご不便をおかけして申し訳ありません。順番に対応いたします。
+理由: 原文にない謝罪と対応約束が追加されている。
 
-原文: こっちは忙しいんだけど。
-変換後: 今少し忙しいので、あとで改めて話せると助かります。
+良い変換:
+原文: こちらのミスではないため、対応できません。
+変換後: こちらのミスではないので、その件は対応するのが難しいです。
+
+直近の会話:
+${historyText}
 
 今回の原文:
 ${text}
 
 変換後:
 `.trim();
+}
+
+function formatHistory(history) {
+  if (!history.length) {
+    return "なし";
+  }
+
+  return history
+    .slice(-8)
+    .map((message) => {
+      const name = message.from === "personA" ? "Aさん" : "Bさん";
+      const original = String(message.original || "").trim();
+
+      return `${name}: ${original}`;
+    })
+    .join("\n");
 }
 
 function extractGeminiText(geminiData) {
