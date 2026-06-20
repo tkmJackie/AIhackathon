@@ -3,66 +3,92 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>やわらかチャット</title>
+  <title>やわらかCSチャット</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="app">
-    <section class="hero">
-      <p class="badge">柔らかい言葉に変換</p>
-      <h1>やわらかチャット</h1>
-      <p class="lead">
-        厳しい言い方や強い表現を、相手に伝わりやすいやさしい言葉に変換します。
-      </p>
-    </section>
-
-    <section class="chat-card">
-      <div id="chatMessages" class="chat-messages">
-        <div class="message system">
-          <p>
-            送りたい内容を入力してください。AIが柔らかい表現に変換します。
-          </p>
-        </div>
+  <div class="page">
+    <header class="hero">
+      <div class="hero-left">
+        <p class="eyebrow">Hackathon Demo</p>
+        <h1>やわらかCSチャット</h1>
+        <p class="hero-text">
+          お客さまの強い言葉も、従業員の強い言葉も、
+          相手にはやさしく届くカスタマーサポートチャット。
+        </p>
       </div>
 
-      <form id="convertForm" class="form">
-        <label for="originalText">送信したい内容</label>
-        <textarea
-          id="originalText"
-          placeholder="例：なんでまだできてないの？早く出して。"
-          required
-        ></textarea>
-
-        <div class="option-row">
-          <label for="toneLevel">やわらかさ</label>
-          <select id="toneLevel">
-            <option value="normal">普通にやわらかく</option>
-            <option value="business" selected>ビジネス向け</option>
-            <option value="verySoft">かなり丁寧に</option>
-            <option value="casual">カジュアルに</option>
-          </select>
+      <div class="hero-right">
+        <div class="role-box">
+          <div class="role-label">現在の画面</div>
+          <div id="roleBadge" class="role-badge"></div>
+          <div class="room-chip">ROOM: <span id="roomLabel"></span></div>
         </div>
 
-        <button type="submit" id="convertButton">
-          柔らかい言葉に変換
-        </button>
-      </form>
-
-      <section class="result-area">
-        <label for="softText">変換後の文章</label>
-        <textarea id="softText" placeholder="ここに変換結果が表示されます。"></textarea>
-
-        <div class="button-row">
-          <button type="button" id="copyButton" class="sub-button">
-            コピー
-          </button>
-          <button type="button" id="sendButton" class="main-button">
-            チャットに送信
-          </button>
+        <div class="tab-links">
+          <a id="openCustomerLink" target="_blank" class="tab-link">お客さまタブを開く</a>
+          <a id="openAgentLink" target="_blank" class="tab-link">従業員タブを開く</a>
         </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="chat-card">
+        <div class="chat-header">
+          <div>
+            <h2 id="chatTitle">チャット</h2>
+            <p id="chatSubTitle" class="chat-subtitle"></p>
+          </div>
+          <div class="status-chip">AI Softening ON</div>
+        </div>
+
+        <div id="messageList" class="message-list"></div>
+
+        <form id="chatForm" class="composer">
+          <label for="messageInput" class="input-label">メッセージ</label>
+
+          <div class="quick-row">
+            <button type="button" class="quick-chip" data-quick="なんでまだ返事がないの？早くしてください。">強めのお客さま例</button>
+            <button type="button" class="quick-chip" data-quick="その言い方では対応できません。必要事項を先に送ってください。">強めの従業員例</button>
+            <button type="button" class="quick-chip" data-quick="至急対応してほしいです。">短い依頼例</button>
+          </div>
+
+          <textarea
+            id="messageInput"
+            placeholder="送信したいメッセージを入力してください"
+            required
+          ></textarea>
+
+          <div class="composer-footer">
+            <p class="helper-text">
+              あなたが送る原文は自分側に表示され、相手側にはAIが柔らかく変換した文が表示されます。
+            </p>
+            <button id="sendButton" type="submit" class="send-button">送信する</button>
+          </div>
+        </form>
       </section>
-    </section>
-  </main>
+
+      <aside class="side-card">
+        <h3>デモのポイント</h3>
+        <ul class="point-list">
+          <li>お客さまと従業員の2タブで同時に表示</li>
+          <li>受信側には自動で柔らかい文だけを表示</li>
+          <li>心理的負担を減らし、円滑なCS対応を支援</li>
+        </ul>
+
+        <div class="demo-box">
+          <h4>デモ手順</h4>
+          <ol>
+            <li>「お客さまタブ」と「従業員タブ」を2つ開く</li>
+            <li>片方から少し強い文を送る</li>
+            <li>もう片方で柔らかい文に変換されて届く様子を見せる</li>
+          </ol>
+        </div>
+
+        <button id="resetButton" class="reset-button">会話をリセット</button>
+      </aside>
+    </main>
+  </div>
 
   <script src="script.js"></script>
 </body>
