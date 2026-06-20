@@ -95,7 +95,9 @@ function renderPanel(container, messages, viewerRole) {
       badge.className = "original-badge";
       badge.textContent = "原文表示";
     } else {
-      meta.textContent = message.from === "personA" ? "Aさんから受信" : "Bさんから受信";
+      meta.textContent =
+        message.from === "personA" ? "Aさんから受信" : "Bさんから受信";
+
       text.textContent = message.softened;
       badge.className = "ai-badge";
       badge.textContent = "AIでやわらかく変換";
@@ -104,6 +106,7 @@ function renderPanel(container, messages, viewerRole) {
     bubble.appendChild(meta);
     bubble.appendChild(text);
     bubble.appendChild(badge);
+
     row.appendChild(bubble);
     container.appendChild(row);
   });
@@ -125,7 +128,13 @@ async function handleSend(from) {
   setSending(button, true);
 
   try {
-    const softened = await softenMessage(original);
+    const messages = loadMessages();
+
+    const softened = await softenMessage({
+      text: original,
+      from,
+      history: messages
+    });
 
     const message = {
       id: crypto.randomUUID(),
@@ -135,7 +144,6 @@ async function handleSend(from) {
       createdAt: Date.now()
     };
 
-    const messages = loadMessages();
     messages.push(message);
     saveMessages(messages);
 
@@ -149,7 +157,14 @@ async function handleSend(from) {
   }
 }
 
-async function softenMessage(text) {
+async function softenMessage({ text, from, history }) {
+  const recentHistory = history
+    .slice(-8)
+    .map((message) => ({
+      from: message.from,
+      original: message.original
+    }));
+
   const response = await fetch("/api/soften", {
     method: "POST",
     headers: {
@@ -157,6 +172,8 @@ async function softenMessage(text) {
     },
     body: JSON.stringify({
       text,
+      from,
+      history: recentHistory,
       mode: "general_conversation"
     })
   });
