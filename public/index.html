@@ -7,88 +7,94 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="page">
-    <header class="hero">
-      <div class="hero-left">
+  <main class="demo-page">
+    <header class="top-bar">
+      <div>
         <p class="eyebrow">Hackathon Demo</p>
         <h1>やわらかCSチャット</h1>
-        <p class="hero-text">
-          お客さまの強い言葉も、従業員の強い言葉も、
-          相手にはやさしく届くカスタマーサポートチャット。
-        </p>
       </div>
-
-      <div class="hero-right">
-        <div class="role-box">
-          <div class="role-label">現在の画面</div>
-          <div id="roleBadge" class="role-badge"></div>
-          <div class="room-chip">ROOM: <span id="roomLabel"></span></div>
-        </div>
-
-        <div class="tab-links">
-          <a id="openCustomerLink" target="_blank" class="tab-link">お客さまタブを開く</a>
-          <a id="openAgentLink" target="_blank" class="tab-link">従業員タブを開く</a>
-        </div>
-      </div>
+      <p class="concept">
+        強い言葉をそのまま届けず、相手にはやさしい言葉として表示するカスタマーサポートチャット
+      </p>
+      <button id="resetButton" class="reset-button" type="button">会話をリセット</button>
     </header>
 
-    <main class="layout">
-      <section class="chat-card">
-        <div class="chat-header">
+    <section class="demo-grid">
+      <!-- お客さま側 -->
+      <section class="chat-panel customer-panel">
+        <div class="panel-header">
           <div>
-            <h2 id="chatTitle">チャット</h2>
-            <p id="chatSubTitle" class="chat-subtitle"></p>
+            <p class="role-chip customer">お客さま側</p>
+            <h2>Customer Chat</h2>
           </div>
-          <div class="status-chip">AI Softening ON</div>
+          <p class="panel-note">従業員の強い言葉は、やさしい案内文に変換されて届きます。</p>
         </div>
 
-        <div id="messageList" class="message-list"></div>
+        <div id="customerMessages" class="message-list"></div>
 
-        <form id="chatForm" class="composer">
-          <label for="messageInput" class="input-label">メッセージ</label>
-
+        <form id="customerForm" class="composer">
           <div class="quick-row">
-            <button type="button" class="quick-chip" data-quick="なんでまだ返事がないの？早くしてください。">強めのお客さま例</button>
-            <button type="button" class="quick-chip" data-quick="その言い方では対応できません。必要事項を先に送ってください。">強めの従業員例</button>
-            <button type="button" class="quick-chip" data-quick="至急対応してほしいです。">短い依頼例</button>
+            <button type="button" class="quick-chip" data-target="customer" data-text="なんでまだ返事がないの？早くしてください。">
+              強めの例
+            </button>
+            <button type="button" class="quick-chip" data-target="customer" data-text="説明がわかりにくいです。ちゃんと対応してください。">
+              クレーム例
+            </button>
           </div>
 
           <textarea
-            id="messageInput"
-            placeholder="送信したいメッセージを入力してください"
+            id="customerInput"
+            placeholder="お客さまのメッセージを入力"
             required
           ></textarea>
 
-          <div class="composer-footer">
-            <p class="helper-text">
-              あなたが送る原文は自分側に表示され、相手側にはAIが柔らかく変換した文が表示されます。
-            </p>
-            <button id="sendButton" type="submit" class="send-button">送信する</button>
-          </div>
+          <button id="customerSendButton" class="send-button customer-send" type="submit">
+            お客さまとして送信
+          </button>
         </form>
       </section>
 
-      <aside class="side-card">
-        <h3>デモのポイント</h3>
-        <ul class="point-list">
-          <li>お客さまと従業員の2タブで同時に表示</li>
-          <li>受信側には自動で柔らかい文だけを表示</li>
-          <li>心理的負担を減らし、円滑なCS対応を支援</li>
-        </ul>
-
-        <div class="demo-box">
-          <h4>デモ手順</h4>
-          <ol>
-            <li>「お客さまタブ」と「従業員タブ」を2つ開く</li>
-            <li>片方から少し強い文を送る</li>
-            <li>もう片方で柔らかい文に変換されて届く様子を見せる</li>
-          </ol>
+      <!-- 従業員側 -->
+      <section class="chat-panel agent-panel">
+        <div class="panel-header">
+          <div>
+            <p class="role-chip agent">従業員側</p>
+            <h2>Agent Chat</h2>
+          </div>
+          <p class="panel-note">お客さまの強い言葉は、落ち着いた要望文に変換されて届きます。</p>
         </div>
 
-        <button id="resetButton" class="reset-button">会話をリセット</button>
-      </aside>
-    </main>
-  </div>
+        <div id="agentMessages" class="message-list"></div>
+
+        <form id="agentForm" class="composer">
+          <div class="quick-row">
+            <button type="button" class="quick-chip" data-target="agent" data-text="その言い方では対応できません。必要事項を先に送ってください。">
+              強めの例
+            </button>
+            <button type="button" class="quick-chip" data-target="agent" data-text="こちらでは確認できません。自分で調べてください。">
+              突き放し例
+            </button>
+          </div>
+
+          <textarea
+            id="agentInput"
+            placeholder="従業員のメッセージを入力"
+            required
+          ></textarea>
+
+          <button id="agentSendButton" class="send-button agent-send" type="submit">
+            従業員として送信
+          </button>
+        </form>
+      </section>
+    </section>
+
+    <footer class="bottom-caption">
+      <span>送信者には原文を表示</span>
+      <span>相手にはAIが柔らかく変換した文章を表示</span>
+      <span>Cloudflare Workers + Gemini API</span>
+    </footer>
+  </main>
 
   <script src="script.js"></script>
 </body>
