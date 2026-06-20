@@ -56,12 +56,12 @@ body {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 26px;
-  padding: 18px 24px;
+  padding: 14px 24px;
   box-shadow: var(--shadow);
 }
 
 .title-area {
-  min-width: 360px;
+  min-width: 430px;
 }
 
 .eyebrow {
@@ -72,11 +72,26 @@ body {
   letter-spacing: 0.04em;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 h1 {
   margin: 0;
   font-size: clamp(28px, 3vw, 44px);
   line-height: 1.1;
   letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.title-character {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 10px 18px rgba(15, 23, 42, 0.14));
 }
 
 .concept {
@@ -344,6 +359,10 @@ textarea:focus {
     min-width: 0;
   }
 
+  .title-row {
+    justify-content: flex-start;
+  }
+
   .demo-grid {
     grid-template-columns: 1fr;
   }
@@ -375,6 +394,12 @@ textarea:focus {
 
   h1 {
     font-size: 30px;
+    white-space: normal;
+  }
+
+  .title-character {
+    width: 58px;
+    height: 58px;
   }
 
   .concept {
