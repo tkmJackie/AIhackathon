@@ -1,1 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>やわらかチャット</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <p class="badge">柔らかい言葉に変換</p>
+      <h1>やわらかチャット</h1>
+      <p class="lead">
+        厳しい言い方や強い表現を、相手に伝わりやすいやさしい言葉に変換します。
+      </p>
+    </section>
 
+    <section class="chat-card">
+      <div id="chatMessages" class="chat-messages">
+        <div class="message system">
+          <p>
+            送りたい内容を入力してください。AIが柔らかい表現に変換します。
+          </p>
+        </div>
+      </div>
+
+      <form id="convertForm" class="form">
+        <label for="originalText">送信したい内容</label>
+        <textarea
+          id="originalText"
+          placeholder="例：なんでまだできてないの？早く出して。"
+          required
+        ></textarea>
+
+        <div class="option-row">
+          <label for="toneLevel">やわらかさ</label>
+          <select id="toneLevel">
+            <option value="normal">普通にやわらかく</option>
+            <option value="business" selected>ビジネス向け</option>
+            <option value="verySoft">かなり丁寧に</option>
+            <option value="casual">カジュアルに</option>
+          </select>
+        </div>
+
+        <button type="submit" id="convertButton">
+          柔らかい言葉に変換
+        </button>
+      </form>
+
+      <section class="result-area">
+        <label for="softText">変換後の文章</label>
+        <textarea id="softText" placeholder="ここに変換結果が表示されます。"></textarea>
+
+        <div class="button-row">
+          <button type="button" id="copyButton" class="sub-button">
+            コピー
+          </button>
+          <button type="button" id="sendButton" class="main-button">
+            チャットに送信
+          </button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
