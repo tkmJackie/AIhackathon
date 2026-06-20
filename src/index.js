@@ -33,65 +33,43 @@ async function handleSoften(request, env) {
       );
     }
 
-    const prompt = buildPrompt({
-      text,
-      from,
-      history
-    });
-
     const model = env.GEMINI_MODEL || "gemini-3.5-flash";
 
-    const apiUrl =
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent` +
-      `?key=${env.GEMINI_API_KEY}`;
+    let finalText = "";
 
-    const geminiResponse = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          topP: 0.8,
-          maxOutputTokens: 500
-        }
-      })
-    });
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const prompt = buildPrompt({
+        text,
+        from,
+        history,
+        attempt
+      });
 
-    const geminiData = await geminiResponse.json();
+      const aiText = await callGemini({
+        prompt,
+        model,
+        apiKey: env.GEMINI_API_KEY
+      });
 
-    if (!geminiResponse.ok) {
-      console.error("Gemini API error:", JSON.stringify(geminiData));
-      return jsonResponse(
-        { error: "AI変換APIの呼び出しに失敗しました。" },
-        500
-      );
+      const parsed = parseAiResult(aiText);
+
+      if (isCompleteSentence(parsed)) {
+        finalText = parsed;
+        break;
+      }
+
+      console.warn("Incomplete AI result. Retry:", {
+        attempt,
+        aiText,
+        parsed
+      });
     }
 
-    const result = extractGeminiText(geminiData);
-
-    if (!result) {
-      console.error("Gemini empty result:", JSON.stringify(geminiData));
-      return jsonResponse(
-        { error: "変換結果を取得できませんでした。" },
-        500
-      );
+    if (!finalText) {
+      finalText = createFallbackMessage(text);
     }
 
-    const cleaned = cleanResult(result);
-
-    return jsonResponse({ result: cleaned });
+    return jsonResponse({ result: finalText });
   } catch (error) {
     console.error(error);
 
@@ -102,81 +80,110 @@ async function handleSoften(request, env) {
   }
 }
 
-function buildPrompt({ text, from, history }) {
+async function callGemini({ prompt, model, apiKey }) {
+  const apiUrl =
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent` +
+    `?key=${apiKey}`;
+
+  const geminiResponse = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.1,
+        topP: 0.7,
+        maxOutputTokens: 180
+      }
+    })
+  });
+
+  const geminiData = await geminiResponse.json();
+
+  if (!geminiResponse.ok) {
+    console.error("Gemini API error:", JSON.stringify(geminiData));
+    throw new Error("AI変換APIの呼び出しに失敗しました。");
+  }
+
+  return extractGeminiText(geminiData);
+}
+
+function buildPrompt({ text, from, history, attempt }) {
   const senderName = from === "personA" ? "Aさん" : "Bさん";
   const receiverName = from === "personA" ? "Bさん" : "Aさん";
-
   const historyText = formatHistory(history);
 
+  const retryInstruction =
+    attempt === 1
+      ? ""
+      : `
+前回の出力は途中で終わっている可能性があります。
+今回は必ず最後まで完結した自然な1文にしてください。
+`.trim();
+
   return `
-あなたは、一般人同士の会話をやわらかく整えるAIです。
+あなたは、一般人同士の会話をやさしく言い換えるAIです。
 
 目的:
-${senderName}が送った少し強い言い方のメッセージを、
-${receiverName}が受け取りやすい、やさしく自然な言葉に言い換えてください。
+${senderName}の強い言葉を、${receiverName}が受け取りやすい自然でやさしい言葉に言い換えてください。
 
-最重要ルール:
-- 原文の意味・意図・文脈をできるだけ保つ
-- 強い口調、責める言い方、トゲのある表現だけをやわらげる
-- 元の気持ちや不満は完全には消さず、やさしく伝わる形にする
+${retryInstruction}
+
+絶対ルール:
+- 原文の意味を大きく変えない
 - 原文にない事実を足さない
-- 原文にない謝罪を勝手に足さない
-- 原文にない約束を勝手に足さない
-- 原文にない解決策を勝手に足さない
+- 原文にない謝罪を足さない
+- 原文にない約束を足さない
 - カスタマーサポート風にしない
-- ビジネス文にしない
-- 「恐れ入ります」「ご案内いたします」「対応いたします」「確認いたします」は使わない
-- 一般人同士の自然な会話として返す
-- できるだけやさしく、相手を傷つけにくい表現にする
-- ただし、意味が別物になるほど言い換えすぎない
+- ビジネス敬語にしない
+- 攻撃的な言葉だけをやわらげる
+- 一般人同士の自然な会話にする
+- 必ず1文だけにする
+- 必ず最後は「。」「！」「？」のどれかで終える
+- 途中で終わる文は禁止
+- 箇条書きは禁止
+- 説明は禁止
+- 改行は禁止
 
-出力ルール:
-- 必ず自然な日本語の完全文で返す
-- 途中で文を終わらせない
-- 語尾が「〜かな？」「〜けど」「〜だし」「〜なので」「〜かも」「〜というか」だけで不自然に終わらない
-- 箇条書きにしない
-- 会話の解説をしない
-- 引用符を付けない
-- 1〜2文で返す
-- 変換後の文章だけを出力する
+禁止する終わり方:
+「〜けど」
+「〜ので」
+「〜だし」
+「〜かも」
+「〜かな」
+「〜というか」
+「〜ような」
+「〜感じ」
+「〜気がする」
+「〜思って」
 
-やわらかさの基準:
-- 「ムカつく」「ありえない」「最悪」「何回言えばわかるの」などの強い言葉は使わない
-- できるだけ「少し気になった」「悲しかった」「そう感じた」「もう少しこうしてほしい」のような伝え方にする
-- 相手を否定するより、自分の気持ちやお願いとして表現する
-- きつい拒否は、やわらかい断り方にする
-- 強い不満は、落ち着いた不満にする
+出力形式:
+必ず次のJSONだけを返してください。
+
+{"message":"変換後の文章"}
 
 変換例:
 原文: 遅れたってレベルじゃなくない？毎回そうだけど、こっちのこと軽く見てる感じして普通にムカつく。
-変換後: 毎回こういうことが続くと、あまり大事にされていないように感じてしまってつらいです。もう少し気にかけてもらえたらうれしいです。
+出力: {"message":"毎回こういうことが続くと、大事にされていないように感じて少しつらいです。"}
 
-原文: まあ、そんなに気にしなくてもよくない？
-変換後: あまり深く考えすぎなくても大丈夫かもしれないけど、気になるならその気持ちも大事にしていいと思うよ。
+原文: ごめん、返信遅れた。
+出力: {"message":"返信が遅くなってごめんね。"}
 
 原文: 何回言えばわかるの？
-変換後: 前にも伝えたことなので、もう一度ちゃんと受け取ってもらえるとうれしいです。
+出力: {"message":"前にも伝えたことなので、もう一度ちゃんと受け取ってもらえるとうれしいです。"}
 
-原文: その言い方ちょっときついんだけど。
-変換後: その言い方だと少しきつく感じてしまったよ。もう少しやわらかく話してもらえるとうれしいな。
-
-原文: もういい。勝手にして。
-変換後: 今は少し気持ちを整理したいから、少し時間を置かせてもらえるとうれしいです。
+原文: まあ、そんなに気にしなくてもよくない？
+出力: {"message":"あまり深く考えすぎなくても大丈夫だと思うよ。"}
 
 原文: 全然納得できない。ちゃんと説明して。
-変換後: まだ納得しきれていないところがあるから、もう少し詳しく説明してもらえるとうれしいです。
-
-原文: こっちは忙しいんだけど。
-変換後: 今ちょっと余裕がないから、少し時間をもらえると助かります。
-
-原文: それはさすがにひどくない？
-変換後: それは少しつらく感じたよ。もう少し配慮してもらえたらうれしいです。
-
-原文: なんで返事くれないの？
-変換後: 返事がなくて少し不安になっているよ。時間があるときに返してもらえるとうれしいです。
-
-原文: 普通に傷ついたんだけど。
-変換後: その言葉で少し傷ついてしまったよ。できればもう少しやさしく伝えてもらえるとうれしいです。
+出力: {"message":"まだ納得できていないので、もう少し分かりやすく説明してもらえるとうれしいです。"}
 
 直近の会話:
 ${historyText}
@@ -184,8 +191,96 @@ ${historyText}
 今回の原文:
 ${text}
 
-変換後:
+出力:
 `.trim();
+}
+
+function parseAiResult(aiText) {
+  let text = String(aiText || "").trim();
+
+  text = text
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+
+  try {
+    const parsed = JSON.parse(text);
+    return cleanResult(parsed.message || "");
+  } catch {
+    const match = text.match(/\{[\s\S]*\}/);
+
+    if (match) {
+      try {
+        const parsed = JSON.parse(match[0]);
+        return cleanResult(parsed.message || "");
+      } catch {
+        // 何もしない
+      }
+    }
+  }
+
+  return cleanResult(text);
+}
+
+function isCompleteSentence(text) {
+  if (!text) {
+    return false;
+  }
+
+  const normalized = text.trim();
+
+  if (normalized.length < 8) {
+    return false;
+  }
+
+  if (normalized.includes("\n")) {
+    return false;
+  }
+
+  if (!/[。！？]$/.test(normalized)) {
+    return false;
+  }
+
+  const badEndings = [
+    "けど。",
+    "けれど。",
+    "けれども。",
+    "ので。",
+    "だし。",
+    "かも。",
+    "かな。",
+    "というか。",
+    "ような。",
+    "感じ。",
+    "気がする。",
+    "思って。",
+    "思う。"
+  ];
+
+  return !badEndings.some((ending) => normalized.endsWith(ending));
+}
+
+function createFallbackMessage(originalText) {
+  const text = String(originalText || "");
+
+  if (text.includes("返事") || text.includes("返信")) {
+    return "返事がなくて少し不安になっているので、時間があるときに返してもらえるとうれしいです。";
+  }
+
+  if (text.includes("遅れ") || text.includes("遅い")) {
+    return "遅れていることが少し気になっているので、今の状況を教えてもらえるとうれしいです。";
+  }
+
+  if (text.includes("納得") || text.includes("説明")) {
+    return "まだ納得できていないところがあるので、もう少し分かりやすく説明してもらえるとうれしいです。";
+  }
+
+  if (text.includes("むかつく") || text.includes("ムカつく") || text.includes("傷つ")) {
+    return "その言い方だと少し傷ついてしまうので、もう少しやわらかく話してもらえるとうれしいです。";
+  }
+
+  return "少し強く感じてしまったので、もう少しやさしく伝えてもらえるとうれしいです。";
 }
 
 function formatHistory(history) {
@@ -194,7 +289,7 @@ function formatHistory(history) {
   }
 
   return history
-    .slice(-8)
+    .slice(-6)
     .map((message) => {
       const name = message.from === "personA" ? "Aさん" : "Bさん";
       const original = String(message.original || "").trim();
@@ -213,41 +308,23 @@ function extractGeminiText(geminiData) {
 }
 
 function cleanResult(text) {
-  let result = text
+  let result = String(text || "")
     .replace(/^変換後[:：]\s*/g, "")
+    .replace(/^出力[:：]\s*/g, "")
+    .replace(/^message[:：]\s*/g, "")
     .replace(/^["「『]/g, "")
     .replace(/["」』]$/g, "")
     .replace(/^\s*[-•・]\s*/gm, "")
+    .replace(/\s+/g, " ")
     .trim();
 
-  // 途中で切れたような語尾を軽く補正
-  const badEndings = [
-    "けど",
-    "けれど",
-    "かな",
-    "かも",
-    "なので",
-    "だし",
-    "というか",
-    "けどね",
-    "ですが",
-    "けれども"
-  ];
-
-  for (const ending of badEndings) {
-    if (result.endsWith(ending)) {
-      result += "。";
-      break;
-    }
+  if (!result) {
+    return "";
   }
 
-  // 文末記号がない場合は句点を付ける
   if (!/[。！？]$/.test(result)) {
     result += "。";
   }
-
-  // 連続改行を整理
-  result = result.replace(/\n{2,}/g, "\n").trim();
 
   return result;
 }
