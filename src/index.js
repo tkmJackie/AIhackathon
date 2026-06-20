@@ -45,22 +45,22 @@ async function handleSoften(request, env) {
         attempt
       });
 
-      const aiText = await callGemini({
+      const rawText = await callGemini({
         prompt,
         model,
         apiKey: env.GEMINI_API_KEY
       });
 
-      const cleaned = cleanResult(aiText);
+      const cleaned = cleanResult(rawText);
 
-      if (isGoodSoftMessage(cleaned)) {
+      if (isValidSoftMessage(cleaned)) {
         finalText = cleaned;
         break;
       }
 
-      console.warn("AI result rejected. Retry:", {
+      console.warn("Rejected AI output:", {
         attempt,
-        raw: aiText,
+        rawText,
         cleaned
       });
     }
@@ -94,13 +94,17 @@ async function callGemini({ prompt, model, apiKey }) {
       contents: [
         {
           role: "user",
-          parts: [{ text: prompt }]
+          parts: [
+            {
+              text: prompt
+            }
+          ]
         }
       ],
       generationConfig: {
-        temperature: 0.15,
-        topP: 0.75,
-        maxOutputTokens: 256
+        temperature: 0.05,
+        topP: 0.6,
+        maxOutputTokens: 220
       }
     })
   });
@@ -124,66 +128,121 @@ function buildPrompt({ text, from, history, attempt }) {
     attempt === 1
       ? ""
       : `
-前回の出力は、短すぎる・途中で終わっている・JSONのような形式になっている可能性があります。
-今回は必ず、自然で完結した日本語の文章だけを出力してください。
+前回の出力は不自然、短すぎる、JSON形式、または途中で終わっている可能性があります。
+今回は必ず、自然で完結した日本語の会話文だけを出力してください。
 `.trim();
 
   return `
-あなたは、一般人同士の会話をやさしく言い換えるAIです。
+あなたは、一般人同士の会話をやわらかく言い換えるAIです。
 
 目的:
-${senderName}の少し強い言葉を、${receiverName}が受け取りやすい自然でやさしい言葉に変換してください。
+${senderName}のメッセージを、${receiverName}が受け取りやすい自然でやさしい言葉に変換してください。
 
 ${retryInstruction}
 
-絶対ルール:
-- JSONで返さない
-- {"message": "..."} のような形式にしない
-- コードブロックにしない
-- 箇条書きにしない
-- 解説しない
-- 変換後の文章だけを出力する
+最重要ルール:
+- 原文の意味を変えない
+- 原文の主張・依頼・不満・断り・疑問は残す
+- 変えるのは「強すぎる言い方」「責める表現」「嫌味」「命令口調」だけ
+- 原文にない事実を足さない
+- 原文にない謝罪を足さない
+- 原文にない約束を足さない
+- 原文にない理由を作らない
+- 原文にない解決策を足さない
+- 原文にない感情を足さない
+- 勝手に相手を励まさない
+- 勝手に話をまとめない
+- 丁寧にしすぎない
 - カスタマーサポート風にしない
 - ビジネス敬語にしない
 - 一般人同士の自然な会話にする
-- 最大限の柔らかさで
+
+出力ルール:
+- 変換後の文章だけを出力する
+- JSONで返さない
+- {"message":"..."} の形式は禁止
+- コードブロックは禁止
+- 箇条書きは禁止
+- 解説は禁止
+- 改行は禁止
 - 1〜2文で返す
+- 必ず最後は「。」「！」「？」のどれかで終える
 - 途中で終わらない
 
+禁止する語尾:
+- けど
+- ので
+- だし
+- かも
+- かな
+- というか
+- ような
+- 感じ
+- 気がする
+- 思って
+- 言われる
+
+変換の強さ:
+- 原文がすでに普通なら、ほぼそのまま自然に整える
+- 原文が強い場合だけ、やさしく言い換える
+- 「うれしいです」を毎回使わない
+- 不満を完全に消さない
+- ただし、相手を傷つける表現は使わない
+
 良い変換例:
+
 原文: 当日に言われる。
-変換後: 当日に言われると少し困るから、できればもう少し早めに教えてもらえるとうれしいです。
+変換後: 当日に言われると少し困るから、できればもう少し早めに教えてほしいです。
 
 原文: いきなり言われても無理。
-変換後: 急に言われると少し対応が難しいので、できれば前もって相談してもらえると助かります。
+変換後: 急に言われると対応が難しいので、できれば前もって相談してほしいです。
 
 原文: 遅れたってレベルじゃなくない？毎回そうだけど、こっちのこと軽く見てる感じして普通にムカつく。
-変換後: 毎回こういうことが続くと、大事にされていないように感じて少しつらいです。もう少し気にかけてもらえるとうれしいです。
+変換後: 毎回こういうことが続くと、大事にされていないように感じてつらいです。もう少し気にかけてほしいです。
+
+原文: 返信遅くなってごめんね。
+変換後: 返信が遅くなってごめんね。
 
 原文: 何回言えばわかるの？
-変換後: 前にも伝えたことなので、もう一度ちゃんと受け取ってもらえるとうれしいです。
+変換後: 前にも伝えたことだから、もう一度ちゃんと確認してほしいです。
 
 原文: その言い方ちょっときついんだけど。
-変換後: その言い方だと少しきつく感じてしまったよ。もう少しやわらかく話してもらえるとうれしいです。
+変換後: その言い方だと少しきつく感じてしまったよ。もう少しやわらかく話してほしいです。
 
 原文: 全然納得できない。ちゃんと説明して。
-変換後: まだ納得できていないので、もう少し分かりやすく説明してもらえるとうれしいです。
+変換後: まだ納得できていないので、もう少し分かりやすく説明してほしいです。
+
+原文: まあ、そんなに気にしなくてもよくない？
+変換後: そこまで深く考えすぎなくても大丈夫だと思うよ。
+
+原文: それはさすがにひどくない？
+変換後: それは少しつらく感じたよ。もう少し配慮してもらえると助かります。
+
+原文: こっちは忙しいんだけど。
+変換後: 今ちょっと余裕がないから、少し時間をもらえると助かります。
+
+直近の会話:
+${historyText}
 
 今回の原文:
 ${text}
 
-変換後の文章だけを出力:
+変換後:
 `.trim();
 }
 
-function isGoodSoftMessage(text) {
+function isValidSoftMessage(text) {
   if (!text) {
     return false;
   }
 
   const value = text.trim();
 
-  if (value.length < 16) {
+  if (value.length < 10) {
+    return false;
+  }
+
+  if (value.length > 180) {
     return false;
   }
 
@@ -199,7 +258,11 @@ function isGoodSoftMessage(text) {
     return false;
   }
 
-  if (value.includes("\n-") || value.includes("\n・")) {
+  if (value.includes("原文:") || value.includes("変換後:")) {
+    return false;
+  }
+
+  if (value.includes("\n")) {
     return false;
   }
 
@@ -223,37 +286,64 @@ function isGoodSoftMessage(text) {
     return false;
   }
 
+  const badPhrases = [
+    "恐れ入ります",
+    "ご案内いたします",
+    "対応いたします",
+    "確認いたします",
+    "お客様",
+    "弊社",
+    "貴社"
+  ];
+
+  if (badPhrases.some((phrase) => value.includes(phrase))) {
+    return false;
+  }
+
   return true;
 }
 
 function createFallbackMessage(originalText) {
   const text = String(originalText || "");
 
-  if (text.includes("当日") || text.includes("いきなり") || text.includes("急")) {
-    return "急に言われると少し困るので、できればもう少し早めに教えてもらえるとうれしいです。";
+  if (text.includes("当日")) {
+    return "当日に言われると少し困るから、できればもう少し早めに教えてほしいです。";
+  }
+
+  if (text.includes("いきなり") || text.includes("急")) {
+    return "急に言われると対応が難しいので、できれば前もって相談してほしいです。";
   }
 
   if (text.includes("返事") || text.includes("返信")) {
-    return "返事がなくて少し不安になっているので、時間があるときに返してもらえるとうれしいです。";
+    return "返事がなくて少し不安になっているので、時間があるときに返してほしいです。";
   }
 
   if (text.includes("遅れ") || text.includes("遅い")) {
-    return "遅れていることが少し気になっているので、今の状況を教えてもらえるとうれしいです。";
+    return "遅れていることが少し気になっているので、今の状況を教えてほしいです。";
   }
 
   if (text.includes("納得") || text.includes("説明")) {
-    return "まだ納得できていないところがあるので、もう少し分かりやすく説明してもらえるとうれしいです。";
+    return "まだ納得できていないところがあるので、もう少し分かりやすく説明してほしいです。";
   }
 
   if (
     text.includes("むかつく") ||
     text.includes("ムカつく") ||
+    text.includes("うざ") ||
     text.includes("傷つ")
   ) {
-    return "その言い方だと少し傷ついてしまうので、もう少しやわらかく話してもらえるとうれしいです。";
+    return "その言い方だと少し傷ついてしまうので、もう少しやわらかく話してほしいです。";
   }
 
-  return "少し強く感じてしまったので、もう少しやさしく伝えてもらえるとうれしいです。";
+  if (text.includes("無理") || text.includes("できない")) {
+    return "それは少し難しいので、別の形で相談できると助かります。";
+  }
+
+  if (text.includes("勝手にして") || text.includes("もういい")) {
+    return "今は少し気持ちを整理したいので、少し時間を置きたいです。";
+  }
+
+  return "少し強く聞こえてしまうかもしれないので、もう少しやわらかく伝えたいです。";
 }
 
 function formatHistory(history) {
@@ -262,7 +352,7 @@ function formatHistory(history) {
   }
 
   return history
-    .slice(-6)
+    .slice(-4)
     .map((message) => {
       const name = message.from === "personA" ? "Aさん" : "Bさん";
       const original = String(message.original || "").trim();
@@ -289,7 +379,6 @@ function cleanResult(text) {
     .replace(/```$/i, "")
     .trim();
 
-  // 壊れたJSONっぽい出力を除去
   result = result
     .replace(/^\{\s*"message"\s*:\s*"/i, "")
     .replace(/"\s*\}\s*$/i, "")
