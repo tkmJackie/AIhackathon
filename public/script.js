@@ -36,7 +36,6 @@ convertForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  addMessage(text, "original");
   setLoading(true);
   softText.value = "";
 
@@ -58,8 +57,9 @@ convertForm.addEventListener("submit", async (event) => {
       throw new Error(data.error || "変換に失敗しました。");
     }
 
+    // ここではチャット欄に追加しない
+    // 変換結果エリアにだけ表示する
     softText.value = data.result;
-    addMessage(data.result, "soft");
   } catch (error) {
     console.error(error);
     alert(error.message || "エラーが発生しました。");
@@ -92,7 +92,9 @@ sendButton.addEventListener("click", () => {
     return;
   }
 
+  // チャット欄に表示するのは送信ボタンを押した時だけ
   addMessage(text, "soft");
+
   originalText.value = "";
   softText.value = "";
 });
